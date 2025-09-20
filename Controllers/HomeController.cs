@@ -1,32 +1,113 @@
 using Microsoft.AspNetCore.Mvc;
-using PF_LAB4_31A3_OBIS_FRANCINE.Models;
-using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using PF_LAB4_31A3_OBIS_FRANCINE.Data;
 
 namespace PF_LAB4_31A3_OBIS_FRANCINE.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly RecipeDBContext _context;  
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(RecipeDBContext context)  
         {
-            _logger = logger;
+            _context = context;
+        }
+        public async Task<IActionResult> Index()
+        {
+            var recipes = await _context.Recipes.ToListAsync();
+            return View(recipes);
         }
 
-        public IActionResult Index()
+ 
+        [HttpPut]
+        public async Task<IActionResult> UpdateRecipe(int id, [FromBody] Recipe recipe)
         {
-            return View();
+            if (id != recipe.Id)
+                return Json(new { success = false, message = "ID mismatch" });
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(recipe);
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = true, recipe = recipe });
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    return Json(new { success = false, message = "Recipe not found" });
+                }
+            }
+            return Json(new { success = false, message = "Invalid data" });
         }
 
-        public IActionResult Privacy()
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteRecipe(int id)
         {
-            return View();
+            var recipe = await _context.Recipes.FindAsync(id);
+            if (recipe == null)
+                return Json(new { success = false, message = "Recipe not found" });
+
+            _context.Recipes.Remove(recipe);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+
+        [HttpGet]
+        public async Task<IActionResult> GetRecipe(int id)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            var recipe = await _context.Recipes.FindAsync(id);
+            if (recipe == null)
+                return Json(new { success = false, message = "Recipe not found" });
+
+            return Json(new { success = true, recipe = recipe });
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateRecipe([FromBody] Recipe recipe)
+        {
+            try
+            {
+                Console.WriteLine($"Received recipe: Name={recipe?.Name}, Ingredients={recipe?.Ingredients}");
+
+                if (recipe == null)
+                {
+                    return Json(new { success = false, message = "Recipe data is null" });
+                }
+
+                if (string.IsNullOrEmpty(recipe.Name))
+                {
+                    return Json(new { success = false, message = "Recipe name is required" });
+                }
+
+                if (string.IsNullOrEmpty(recipe.Ingredients))
+                {
+                    return Json(new { success = false, message = "Ingredients are required" });
+                }
+
+
+                try
+                {
+                    System.Text.Json.JsonDocument.Parse(recipe.Ingredients);
+                }
+                catch (System.Text.Json.JsonException ex)
+                {
+                    return Json(new { success = false, message = $"Invalid ingredients JSON format: {ex.Message}" });
+                }
+
+                recipe.Id = 0;
+
+                _context.Recipes.Add(recipe);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, recipe = recipe });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in CreateRecipe: {ex.Message}");
+                return Json(new { success = false, message = $"Server error: {ex.Message}" });
+            }
         }
     }
 }
