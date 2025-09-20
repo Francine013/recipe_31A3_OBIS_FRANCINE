@@ -1,0 +1,18 @@
+﻿using namespace PF_LAB4_31A3_OBIS_FRANCINE.Models
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Recipe Website</h1>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+        <div class="col">
+            <a href="javascript:void(0);"
+               onclick="openAddModal()"
+               class="card h-100 shadow-sm border-0 d-flex align-items-center justify-content-center text-decoration-none add-card">
+                <div class="text-center">
+                    <i class="bi bi-plus-circle" style="font-size: 3rem; color: #6c757d;"></i>
+                    <p class="mt-2 text-muted">Add Book</p>
+                </div>
+            </a>
+        </div>
